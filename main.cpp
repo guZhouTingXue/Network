@@ -15,7 +15,6 @@ int main(int argc, char* argv[])
     struct sockaddr_in serv_addr;
     char message[30];
 	int str_len = 0;
-	int idx = 0, read_len = 0;
 
     if(argc != 3)
     {
@@ -30,24 +29,29 @@ int main(int argc, char* argv[])
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = inet_addr(argv[1]); 
     serv_addr.sin_port = htons(atoi(argv[2]));
+
+
+    if(bind(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == -1)
+        unix_error("bind() error ");
+
+    if(listen(sock, 5) == -1)
+        unix_error("listen() error ");
+
+    struct sockaddr_in client_addr;
+    socklen_t client_addrlen;
+    while(1)
+    {
+        int clientSock = accept(sock, (struct sockaddr*)&client_addr, &client_addrlen);
+        if(clientSock == -1)
+            unix_error("accept() error");
+        printf("Connected client:%s , %d \n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+        while((str_len = read(clientSock, message, BUFSIZ)) !=0 )
+            write(clientSock, message, str_len);
+        printf("Line:%d\n", __LINE__);
+        close(clientSock);
+    }
+    close(sock);
 	
-	if(connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == -1)
-	{
-		unix_error("connect() error!");
-	}
-	
-	while(read_len = read(sock, &message[idx++], 1))
-	{
-		//printf("read_len:%d\n", read_len);
-		if(read_len == -1)
-			unix_error("read() error!");
-		str_len += read_len;
-	}
-	printf("read_len:%d\n", read_len);
-	
-	printf("Message from server :%s\n", message);
-	printf("Function read call count: %d\n", str_len);
-    close(sock	);
     return 0;
 }
 
