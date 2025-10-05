@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 {
     int sock;
     struct sockaddr_in serv_addr;
-    char message[30];
+    char message[10] = {0};
 	int str_len = 0;
 
     if(argc != 3)
@@ -37,17 +37,60 @@ int main(int argc, char* argv[])
     else
         puts("Connected ... \n");
 
-    while(1)
+    float operand0, operand1;
+    char *p = nullptr;
+    message[0] = 0x66;
+
+    printf("Operand0:");
+    scanf("%f", &operand0);
+    printf("\n");
+    p = (char*)&operand0;
+    message[1] = *(p + 3);
+    message[2] = *(p + 2);
+    message[3] = *(p + 1);
+    message[4] = *(p + 0);
+
+    printf("Operand1:");
+    scanf("%f", &operand1);
+    printf("\n");
+    p = (char*)&operand0;
+    message[5] = *(p + 3);
+    message[6] = *(p + 2);
+    message[7] = *(p + 1);
+    message[8] = *(p + 0);
+
+    printf("Operator:");
+    scanf(" %c", &message[9]);
+    printf("\n");
+
+    write(sock, message, 10);
+    char recvMsg[BUF_SIZE];
+    int recv_len = 0, recv_cnt = 0;
+    float result = 0.0;
+    bool recvResult = false;
+    while(recv_len < 5)
     {
-        fputs("Input message(Q to quit): ", stdout);
-        fgets(message, BUF_SIZE, stdin);
-        if(!strcmp(message, "q\n") || !strcmp(message, "Q\n"))
-            break;
-        write(sock, message, strlen(message));
-        str_len = read(sock, message, BUF_SIZE - 1);
-        message[str_len] = 0;
-        printf("Message from server: %s\n", message);
+        recv_cnt = read(sock, &recvMsg[recv_len], sizeof(recvMsg) - recv_len);
+        recv_len += recv_cnt;
+        if(recv_len >= 5)
+        {
+            for(int i=0; i<recv_len; i++)
+            {
+                if(recvMsg[i] == 0x66)
+                {
+                    char *pr = (char*)&result;
+                    pr[3] = recvMsg[i + 1];
+                    pr[2] = recvMsg[i + 2];
+                    pr[1] = recvMsg[i + 3];
+                    pr[0] = recvMsg[i + 4];
+                    printf("result:%f\n", result);
+                    recvResult = true;
+                }
+            }
+        }
     }
+    if(!recvResult)
+        printf("Not found\n");
     close(sock);
 	
     return 0;
