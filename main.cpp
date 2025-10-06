@@ -33,16 +33,24 @@ int main(int argc, char* argv[])
     serv_addr.sin_port = htons(atoi(argv[2]));
 
 
-    if(bind(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == -1)
-        unix_error("bind() error ");
+    // if(bind(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == -1)
+    //     unix_error("bind() error ");
 
     struct sockaddr_in client_addr;
-    socklen_t client_addrlen;
+    socklen_t client_addrlen = sizeof(client_addr);
     while(1)
     {
-        str_len = recvfrom(sock, message, BUF_SIZE, 0,
+        fputs("Input message(Q to quit): ", stdout);
+        fgets(message, BUF_SIZE, stdin);
+        if(!strcmp(message, "q\n") || !strcmp(message, "Q\n"))
+            break;
+
+        sendto(sock, message, strlen(message), 0, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
+
+        str_len = recvfrom(sock, message, BUF_SIZE - 1, 0,
                            (struct sockaddr*)&client_addr, &client_addrlen);
-        sendto(sock, message, str_len, 0, (struct sockaddr*)&client_addr, client_addrlen);
+        message[str_len] = 0;
+        printf("Message from server: %s\n", message);
     }
     close(sock);
 
