@@ -32,9 +32,14 @@ int main(int argc, char* argv[])
     serv_addr.sin_addr.s_addr = inet_addr(argv[1]);
     serv_addr.sin_port = htons(atoi(argv[2]));
 
+    struct sockaddr_in local_addr;
+    memset(&local_addr, 0, sizeof(local_addr));
+    local_addr.sin_family = AF_INET;
+    local_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    local_addr.sin_port = htons(56789);
 
-    // if(bind(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == -1)
-    //     unix_error("bind() error ");
+    if(bind(sock, (struct sockaddr*)&local_addr, sizeof(local_addr)) == -1)
+        unix_error("bind() error ");
 
     struct sockaddr_in client_addr;
     socklen_t client_addrlen = sizeof(client_addr);
