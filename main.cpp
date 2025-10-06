@@ -18,45 +18,38 @@ int main(int argc, char* argv[])
     char message[BUF_SIZE];
     int str_len = 0;
 
-    if(argc != 3)
+    if(argc != 2)
     {
-        printf("Usage : %s <IP> <port>\n", argv[0]);
+        printf("Usage : %s <port>\n", argv[0]);
         exit(1);
     }
     sock = socket(AF_INET, SOCK_DGRAM, 0);
     if(sock == -1)
         unix_error("serv_socket() error");
 
-    memset(&serv_addr, 0, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = inet_addr(argv[1]);
-    serv_addr.sin_port = htons(atoi(argv[2]));
-
     struct sockaddr_in local_addr;
     memset(&local_addr, 0, sizeof(local_addr));
     local_addr.sin_family = AF_INET;
     local_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    local_addr.sin_port = htons(56789);
+    local_addr.sin_port = htons(atoi(argv[1]));
 
     if(bind(sock, (struct sockaddr*)&local_addr, sizeof(local_addr)) == -1)
         unix_error("bind() error ");
 
     struct sockaddr_in client_addr;
-    socklen_t client_addrlen = sizeof(client_addr);
-    while(1)
-    {
-        fputs("Input message(Q to quit): ", stdout);
-        fgets(message, BUF_SIZE, stdin);
-        if(!strcmp(message, "q\n") || !strcmp(message, "Q\n"))
-            break;
+    socklen_t client_addrlen;
 
-        sendto(sock, message, strlen(message), 0, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
+    sleep(20);
+    printf("recv \n");
+    for(int i=0; i<3; i++)
+    {
 
         str_len = recvfrom(sock, message, BUF_SIZE - 1, 0,
                            (struct sockaddr*)&client_addr, &client_addrlen);
         message[str_len] = 0;
-        printf("Message from server: %s\n", message);
+        printf("Message %d %s \n", i+1, message);
     }
+
     close(sock);
 
     return 0;
