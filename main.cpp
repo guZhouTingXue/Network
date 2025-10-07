@@ -18,42 +18,63 @@ int main(int argc, char* argv[])
     char message[BUF_SIZE];
     int str_len = 0;
 
-    if(argc != 4)
+    if(argc != 3)
     {
-        printf("Usage : %s Server<ip> <port> local <port>\n", argv[0]);
+        printf("Usage : %s Server<ip> <port> \n", argv[0]);
         exit(1);
     }
-    sock = socket(AF_INET, SOCK_DGRAM, 0);
+
+    FILE *fp = NULL;
+    fp = fopen("1.txt", "rb");
+    if(!fp)
+    {
+        perror("fopen() error\n");
+        exit(-1);
+    }
+
+    sock = socket(AF_INET, SOCK_STREAM, 0);
     if(sock == -1)
         unix_error("serv_socket() error");
 
-    struct sockaddr_in local_addr;
-    memset(&local_addr, 0, sizeof(local_addr));
-    local_addr.sin_family = AF_INET;
-    local_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    local_addr.sin_port = htons(atoi(argv[3]));
-
-    if(bind(sock, (struct sockaddr*)&local_addr, sizeof(local_addr)) == -1)
-        unix_error("bind() error ");
 
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = inet_addr(argv[1]);
     serv_addr.sin_port = htons(atoi(argv[2]));
 
-    if(connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == -1)
-        unix_error("connect() error");
+    if(bind(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) == -1)
+        unix_error("bind() error");
+
+    if(listen(sock, 1) == -1)
+        unix_error("listen() error");
+
+    struct sockaddr_in client_addr;
+    socklen_t client_addrlen;
+    int client_fd;
+    client_fd = accept(sock, (struct sockaddr*)&client_addr, &client_addrlen);
+    if( client_fd == -1)
+        unix_error("listen() error");
+    int read_cnt = 0;
 
     while(1)
     {
-        fputs("Input message(Q to quit): ", stdout);
-        fgets(message, BUF_SIZE, stdin);
-        if(!strcmp(message, "q\n") || !strcmp(message, "Q\n"))
+        read_cnt = fread((void*)message, 1, 2, fp);
+        if(read_cnt < 2)
+        {
+            write(client_fd, message, read_cnt);
             break;
-        //sendto(sock, message, strlen(message), 0, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
-        send(sock, message, strlen(message), 0);
+        }
+        write(client_fd, message, 2);
     }
 
+    shutdown(client_fd, SHUT_WR);
+    printf("shutdown\n");
+    read_cnt = read(client_fd, message, BUF_SIZE -1);
+    message[read_cnt] = 0;
+    printf("Message from client: %s\n", message);
+
+    fclose(fp);
+    close(client_fd);
     close(sock);
 
     return 0;
