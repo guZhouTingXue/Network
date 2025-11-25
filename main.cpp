@@ -9,35 +9,39 @@
 
 #define BUF_SIZE 1024
 
-void error_handling(char *message);
-void unix_error(char *msg); /* Unix-style error */
+void error_handling(const char *message);
+void unix_error(const char *msg); /* Unix-style error */
 
 int main(int argc, char* argv[])
 {
-    struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_addr.s_addr = inet_addr(argv[1]);
-    struct hostent *host = gethostbyaddr((void*)&addr.sin_addr, sizeof(addr.sin_addr), AF_INET);
-    if(!host)
-    {
-         fprintf(stderr, "gethost error: %s\n", hstrerror(h_errno));
-         exit(1);
-    }
-    //打印host 信息 和 前面一致
-    printf("name:%s\n", host->h_name);
-    for(int i=0; host->h_aliases[i]; i++)
-        printf("Aliases %d: %s \n", host->h_aliases[i]);
-    printf("Address type:%s\n",
-           (host->h_addrtype == AF_INET) ? "AF_INET" : "AF_INET6");
-    for(int i=0; host->h_addr_list[i]; i++)
-        printf("IP addr %d: %s \n", i+1,
-               inet_ntoa(*(struct in_addr*)host->h_addr_list[i]));
+    int tcp_sock, upd_sock;
+    int sock_type;
+    socklen_t optlen;
+
+    tcp_sock = socket(PF_INET, SOCK_STREAM, 0);
+    upd_sock = socket(PF_INET, SOCK_DGRAM, 0);
+
+    printf("SOCK_STREAM: %d\n", SOCK_STREAM);
+    printf("SOCK_DGRAM: %d\n", SOCK_DGRAM);
+
+    int state;
+    state = getsockopt(tcp_sock, SOL_SOCKET, SO_TYPE, &sock_type, &optlen);
+    if(state == -1)
+        unix_error("getsockopt error for TCP socket");
+    else
+        printf("TCP socket type: %d\n", sock_type);
+
+    state = getsockopt(upd_sock, SOL_SOCKET, SO_TYPE, &sock_type, &optlen);
+    if(state == -1)     
+        unix_error("getsockopt error for UDP socket");
+    else
+        printf("UDP socket type: %d\n", sock_type);
 
 
     return 0;
 }
 
-void error_handling(char *message)
+void error_handling(const char *message)
 {
 	fputs(message, stderr);
 	fprintf(stderr, " %s", strerror(errno));
@@ -45,7 +49,7 @@ void error_handling(char *message)
 	exit(1);
 }
 
-void unix_error(char *msg) /* Unix-style error */
+void unix_error(const char *msg) /* Unix-style error */
 {
     fprintf(stderr, "%s: %s\n", msg, strerror(errno));
     exit(0);
