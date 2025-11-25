@@ -14,29 +14,31 @@ void unix_error(const char *msg); /* Unix-style error */
 
 int main(int argc, char* argv[])
 {
-    int tcp_sock, upd_sock;
-    int sock_type;
-    socklen_t optlen;
-
-    tcp_sock = socket(PF_INET, SOCK_STREAM, 0);
-    upd_sock = socket(PF_INET, SOCK_DGRAM, 0);
-
-    printf("SOCK_STREAM: %d\n", SOCK_STREAM);
-    printf("SOCK_DGRAM: %d\n", SOCK_DGRAM);
+    int sock = socket(PF_INET, SOCK_STREAM, 0);
+    socklen_t buf_size;
+    socklen_t optlen = sizeof(buf_size);
 
     int state;
-    state = getsockopt(tcp_sock, SOL_SOCKET, SO_TYPE, &sock_type, &optlen);
+    state = getsockopt(sock, SOL_SOCKET, SO_SNDBUF, &buf_size, &optlen);
     if(state == -1)
         unix_error("getsockopt error for TCP socket");
     else
-        printf("TCP socket type: %d\n", sock_type);
+        printf("TCP sock sendbuffer size : %d\n", buf_size);
 
-    state = getsockopt(upd_sock, SOL_SOCKET, SO_TYPE, &sock_type, &optlen);
-    if(state == -1)     
-        unix_error("getsockopt error for UDP socket");
+    buf_size = 4600;
+    state = setsockopt(sock, SOL_SOCKET, SO_SNDBUF, &buf_size, optlen);
+    if(state == -1)
+        unix_error("setsockopt error for TCP socket");
     else
-        printf("UDP socket type: %d\n", sock_type);
+    {
+        state = getsockopt(sock, SOL_SOCKET, SO_SNDBUF, &buf_size, &optlen);
+        if(state == -1)
+            unix_error("getsockopt error for TCP socket");
+        else
+            printf("TCP sock sendbuffer size changed to : %d\n", buf_size);
+    }
 
+    close(sock);
 
     return 0;
 }
