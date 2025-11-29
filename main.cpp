@@ -41,7 +41,9 @@ int main(int argc, char* argv[])
     sock = socket(AF_INET, SOCK_STREAM, 0);
     if(sock == -1)
         unix_error("serv_socket() error");
-
+    int option = true;
+    socklen_t optlen = sizeof(option);
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (void*)&option, optlen);
 
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
